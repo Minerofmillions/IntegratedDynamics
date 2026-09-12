@@ -3103,8 +3103,12 @@ public final class Operators {
                             OperatorBase.SafeVariablesGetter variables = input.getRight();
                             ValueTypeList.ValueList<?, ?> inputList = variables.getValue(0, ValueTypes.LIST);
                             if (inputList.getRawValue().isInfinite()) {
-                                throw new EvaluationException(Component.translatable(L10NValues.OPERATOR_ERROR_INFINITELIST_ILLEGAL,
-                                        OPERATOR_FILTER.getLocalizedNameFull()));
+                                try {
+                                    return ValueTypeList.ValueList.ofFactory(ValueTypeListProxyFilteredLazyBuilt.ofProxy(inputList.getRawValue(), innerOperator));
+                                } catch (EvaluationException e) {
+                                    throw new EvaluationException(Component.translatable(L10NValues.OPERATOR_ERROR_INFINITELIST_ILLEGAL,
+                                            OPERATOR_FILTER.getLocalizedNameFull()));
+                                }
                             }
                             List<IValue> filtered = Lists.newArrayList();
                             for (IValue value : inputList.getRawValue()) {

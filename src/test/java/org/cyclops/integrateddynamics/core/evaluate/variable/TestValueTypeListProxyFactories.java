@@ -1,15 +1,13 @@
 package org.cyclops.integrateddynamics.core.evaluate.variable;
 
 import com.google.common.collect.Lists;
-import net.minecraft.nbt.ByteArrayTag;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.IntArrayTag;
-import net.minecraft.nbt.LongArrayTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
 import org.cyclops.cyclopscore.helper.CyclopsCoreInstance;
 import org.cyclops.integrateddynamics.ModBaseMocked;
 import org.cyclops.integrateddynamics.api.evaluate.variable.IValueTypeListProxy;
 import org.cyclops.integrateddynamics.api.evaluate.variable.IValueTypeListProxyFactoryTypeRegistry;
+import org.cyclops.integrateddynamics.core.evaluate.operator.CombinedOperator;
+import org.cyclops.integrateddynamics.core.evaluate.operator.CurriedOperator;
 import org.cyclops.integrateddynamics.core.evaluate.operator.Operators;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -22,11 +20,14 @@ import static org.junit.Assert.assertThat;
 /**
  * Test the factory types of value list proxies.
  * Entity and inventory types should be checked manually.
+ *
  * @author rubensworks
  */
 public class TestValueTypeListProxyFactories {
 
-    static { CyclopsCoreInstance.MOD = new ModBaseMocked(); }
+    static {
+        CyclopsCoreInstance.MOD = new ModBaseMocked();
+    }
 
     @BeforeClass
     public static void before() {
@@ -55,6 +56,18 @@ public class TestValueTypeListProxyFactories {
                 ValueTypeInteger.ValueInteger.of(0),
                 Operators.ARITHMETIC_ADDITION
         ));
+    }
+
+    @Test
+    public void testFilteredLazyBuilt() throws IValueTypeListProxyFactoryTypeRegistry.SerializationException {
+        testFactoryType(new ValueTypeListProxyFilteredLazyBuilt<>(
+                new ValueTypeListProxyLazyBuilt<>(
+                        ValueTypeInteger.ValueInteger.of(0),
+                        Operators.ARITHMETIC_ADDITION
+                ),
+                CombinedOperator.Pipe.asOperator(
+                        new CurriedOperator(Operators.ARITHMETIC_MODULUS, new DummyVariableInteger(ValueTypeInteger.ValueInteger.of(2))),
+                        new CurriedOperator(Operators.RELATIONAL_EQUALS, new DummyVariableInteger(ValueTypeInteger.ValueInteger.of(0))))));
     }
 
     @Test

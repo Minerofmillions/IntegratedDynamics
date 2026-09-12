@@ -6,6 +6,8 @@ import org.cyclops.integrateddynamics.api.evaluate.EvaluationException;
 import org.cyclops.integrateddynamics.api.evaluate.variable.IValue;
 import org.cyclops.integrateddynamics.api.evaluate.variable.IValueTypeListProxy;
 import org.cyclops.integrateddynamics.api.evaluate.variable.IVariable;
+import org.cyclops.integrateddynamics.core.evaluate.operator.CombinedOperator;
+import org.cyclops.integrateddynamics.core.evaluate.operator.CurriedOperator;
 import org.cyclops.integrateddynamics.core.evaluate.operator.Operators;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -17,11 +19,15 @@ import static org.junit.Assert.assertThat;
 
 /**
  * Test the different integer operators.
+ *
  * @author rubensworks
  */
 public class TestListOperators {
 
-    static { CyclopsCoreInstance.MOD = new ModBaseMocked(); }
+    static {
+        CyclopsCoreInstance.MOD = new ModBaseMocked();
+    }
+
     private static final DummyValueType DUMMY_TYPE = DummyValueType.TYPE;
     private static final DummyVariable<DummyValueType.DummyValue> DUMMY_VARIABLE =
             new DummyVariable<DummyValueType.DummyValue>(DUMMY_TYPE, DummyValueType.DummyValue.of());
@@ -34,6 +40,7 @@ public class TestListOperators {
     private DummyVariableList lintegers_rev_dup;
     private DummyVariableList llongs_hash_collision;
     private DummyVariableList lintegers_inf;
+    private DummyVariableList lintegers_even;
 
     private DummyVariableInteger im1;
     private DummyVariableInteger i0;
@@ -88,6 +95,16 @@ public class TestListOperators {
         ));
         lintegers_inf = new DummyVariableList(ValueTypeList.ValueList.ofFactory(new ValueTypeListProxyLazyBuilt<>(
                 ValueTypeInteger.ValueInteger.of(0), Operators.ARITHMETIC_INCREMENT)));
+        try {
+            lintegers_even = new DummyVariableList(ValueTypeList.ValueList.ofFactory(ValueTypeListProxyFilteredLazyBuilt.ofProxy(
+                    lintegers_inf.getValue().getRawValue(), CombinedOperator.Pipe.asOperator(
+                            new CurriedOperator(Operators.ARITHMETIC_MODULUS, i2),
+                            new CurriedOperator(Operators.RELATIONAL_EQUALS, i0)
+                    )
+            )));
+        } catch (EvaluationException e) {
+            lintegers_even = lintegers_inf;
+        }
     }
 
     /**
@@ -387,6 +404,11 @@ public class TestListOperators {
         Operators.LIST_COUNT.evaluate(new IVariable[]{lintegers_inf, i0});
     }
 
+    @Test(expected = EvaluationException.class)
+    public void testListCountFilteredInfinite() throws EvaluationException {
+        Operators.LIST_COUNT.evaluate(new IVariable[]{lintegers_even, i0});
+    }
+
     /**
      * ----------------------------------- COUNT_PREDICATE -----------------------------------
      */
@@ -439,6 +461,11 @@ public class TestListOperators {
     @Test(expected = EvaluationException.class)
     public void testListCountPredicateInfinite() throws EvaluationException {
         Operators.LIST_COUNT_PREDICATE.evaluate(new IVariable[]{lintegers_inf, i0});
+    }
+
+    @Test(expected = EvaluationException.class)
+    public void testListCountPredicateFilteredInfinite() throws EvaluationException {
+        Operators.LIST_COUNT.evaluate(new IVariable[]{lintegers_even, i2});
     }
 
     /**
@@ -791,31 +818,31 @@ public class TestListOperators {
     @Test
     public void testIntersection() throws EvaluationException {
         DummyVariableList list1 = new DummyVariableList(ValueTypeList.ValueList.ofAll(
-            ValueTypeString.ValueString.of("a"),
-            ValueTypeString.ValueString.of("b"),
-            ValueTypeString.ValueString.of("c")
+                ValueTypeString.ValueString.of("a"),
+                ValueTypeString.ValueString.of("b"),
+                ValueTypeString.ValueString.of("c")
         ));
         DummyVariableList list2 = new DummyVariableList(ValueTypeList.ValueList.ofAll(
-            ValueTypeString.ValueString.of("d"),
-            ValueTypeString.ValueString.of("c"),
-            ValueTypeString.ValueString.of("b")
+                ValueTypeString.ValueString.of("d"),
+                ValueTypeString.ValueString.of("c"),
+                ValueTypeString.ValueString.of("b")
         ));
         IValue result = Operators.LIST_INTERSECTION.evaluate(new IVariable[]{list1, list2});
         IValueTypeListProxy<ValueTypeString, ValueTypeString.ValueString> resultValues = ((ValueTypeList.ValueList) result).getRawValue();
         assertThat(
-            "len(a,b,c ∩ d,c,b) == 2",
-            resultValues.getLength(),
-            is(2)
+                "len(a,b,c ∩ d,c,b) == 2",
+                resultValues.getLength(),
+                is(2)
         );
         assertThat(
-            "(a,b,c ∩ d,c,b)[0]",
-            resultValues.get(0).getRawValue(),
-            is("b")
+                "(a,b,c ∩ d,c,b)[0]",
+                resultValues.get(0).getRawValue(),
+                is("b")
         );
         assertThat(
-            "(a,b,c ∩ d,c,b)[1]",
-            resultValues.get(1).getRawValue(),
-            is("c")
+                "(a,b,c ∩ d,c,b)[1]",
+                resultValues.get(1).getRawValue(),
+                is("c")
         );
     }
 
